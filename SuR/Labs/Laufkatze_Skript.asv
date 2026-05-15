@@ -1,0 +1,15 @@
+clc; clear; close all
+sim("Laufkatze.slx")
+t       = ans.tout;
+x       = ans.x.Data;
+v   = ans.x_dot.Data;
+p     = ans.phi.Data;
+p_dot = ans.phi_dot.Data;
+t_60 = find(x <=60 , 1);
+x_t60= x(t_60);
+figure;
+subplot(2,2,1); plot(t, x);            title('Position x');          ylabel('m');     xlabel('t [s]'); ylim([0 70]); grid on
+subplot(2,2,2); plot(t, v);        title('Geschwindigkeit ẋ');   ylabel('m/s');   xlabel('t [s]'); grid on
+subplot(2,2,3); plot(t, p);   title('Winkel φ');            ylabel('rad');     xlabel('t [s]'); ylim([-0.6 0.8]); grid on
+h
+subplot(2,2,4); plot(t, p_dot);      title('Winkelgeschw. φ̇');    ylabel('rad/s'); xlabel('t [s]'); grid on
