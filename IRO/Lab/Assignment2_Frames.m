@@ -48,9 +48,23 @@ Frames = drawFrame(O0, R_ges);
 %% Spatial Transformations between Frames %%%%%%%%%%%%%%%%%%%%%%%%
 Frame01 =Frames{1};
 T01 = Frames{1};
+% Ich 
 T21 = inv(Frames{2}) * Frames{1};
 T32 = inv(Frames{3})  * Frames{2};
 T20 = inv(Frames{2});
+
+
+Transforms = {T21, T32, T20};
+labels     = {'T21', 'T32', 'T20'};
+
+for i = 1:length(Transforms)
+    T = Transforms{i};
+    fprintf('\n--- %s ---\n', labels{i});
+    for row = 1:4
+        fprintf(sprintf('%8.4f  %8.4f  %8.4f  %8.4f\n', ...
+            T(row,1), T(row,2), T(row,3), T(row,4)));
+    end
+end
 
 %% Transformation of Point Coordinates
 P3 = transpose([1 0 0 1]);

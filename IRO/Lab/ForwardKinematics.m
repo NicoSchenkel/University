@@ -1,37 +1,4 @@
-clc; close all; clear all;
-
-% Frame Base an 0 0 0 realtiv zu Worldframe
-TWB = eye(4,4);
-
-%% Beziehungen der Gelenke zueinander
-
-% TB1: Translation: [0 0 156.4] -q um alte z-achse Rotationen: x:180 
-% T12: Translation: [0 5.4 -128.4] | -q um alte y-achse | Rotationen: x:90 y: z:
-% T23: Translation: [0 -210.4 -6.4] |q um alte y-achse| Rotationen: x:-90 y: z
-% T34: Translation: [0 6.4 -210.4] |-q um alte y-achse |Rotationen: x:90 y: z
-% T45: Translation: [0 -208.4 -6.4]  |+q um alte y-achse| Rotationen: x:-90 y: z
-% T56: Translation: [0 0 -105.9] | -q um alte y-achse | Rotationen: x:90 y: z
-%T67: Translation: [0 -105.9 0]| +q um alte y-achse | Rotationen: x:-90 y: z
-%T78: Translation: [0 0 -61.5] | +q = 0, da J8 virtuell | Rotationen: x:180
-
-
-% Dynamische Rotationen q
-q = zeros(7,1);
-q1 = transpose([16.39 299.74 5.1 268.15 22.15 63.48 71.2]);
-q2 = transpose([351.73 300.69 8.11 263.98 356.98 63 79.94]);
-q3 = transpose([1.18 291.32 18.47 290.91 94.36 112.93 46]);
-
-% Berechnen der Forward Kinematics
-[T08_q1, ToolPosition_q1] = ForwardKinematics(TWB, q1);
-[T08_q2, ToolPosition_q2] = ForwardKinematics(TWB, q2);
-[T08_q3, ToolPosition_q3] = ForwardKinematics(TWB, q3);
-
-disp("T08 für q1: ");  disp(T08_q1)
-
-disp("T08 für q2: ");  disp(T08_q2)
-disp("T08 für q3");  disp(T08_q3)
-
-
+%% Funciton for Forward Kinematic to calculate Toolposition
 function [T08, ToolPosition] = ForwardKinematics(TWB, q)
 
 Rotationen_q = cell(1, length(q)+1);
@@ -71,7 +38,8 @@ Rotations_ges = cell(1,nFrames);
     end
 
 % Translationen der Gelenke
-Translationen = ([ 0,   0,      156.4;
+Translationen = ([ ...
+    0,   0,      156.4;
     0,   5.4,   -128.4;
     0,   -210.4,  -6.4;
     0,    6.4,    -210.4;
@@ -79,7 +47,7 @@ Translationen = ([ 0,   0,      156.4;
     0,   0,   -105.9;
     0, - 105.9,   0;
     0, 0, -61.5;
-]);
+]) * 10^-3;
 
 
 % Homogenisierte Translationen
@@ -99,7 +67,7 @@ Transformationen = cell(1,nFrames);
 T = cell(1, length(Transformationen));
 for i=1: length(Transformationen)
     if i == 1
-    T{i} = TWB * Transformationen{i}
+    T{i} = TWB * Transformationen{i};
     else
         T{i} = T{i-1} * Transformationen{i};
     end
@@ -108,10 +76,14 @@ end
 T08 = T{8};
 
 % Tool
-v = transpose([0 0 0.012 1]);
+v = transpose([0 0 0.12 1]);
 ToolPosition = T{8} * v;
 
 end
+
+
+
+
 
 %% Funktionen für Rotationsmatrizen
 function [Rx] = X_Rotation(alpha)
