@@ -39,18 +39,26 @@ Frame0 = [A0 B0 C0];
 
     % Rotationsmatrix, die Origin enthält
      R_ges1 = R_ges{1};
-     
+  
+
+     % Translationen
+O0O1 = transpose([-0.78 0.15 0.21]);
+O0O2 = transpose([-0.78 -0.05 0.21]);
+O0O3 = transpose([-0.55 -0.2 .21]);
+TranslationVectors = [O0O1 O0O2 O0O3];
   
 % Frames Zeichnen 
-Frames = drawFrame(O0, R_ges); 
+Frames = drawFrame(TranslationVectors, R_ges); 
 
 
 %% Spatial Transformations between Frames %%%%%%%%%%%%%%%%%%%%%%%%
 Frame01 =Frames{1};
 T01 = Frames{1};
-% Ich 
-T21 = inv(Frames{2}) * Frames{1};
-T32 = inv(Frames{3})  * Frames{2};
+ 
+%T21 = inv(Frames{2}) * Frames{1};
+T21 = Frames{2} \ Frames{1}; 
+%T32 = inv(Frames{3})  * Frames{2};
+T32 = (Frames{3})  \ Frames{2}; % Faster then calculate with the inverse
 T20 = inv(Frames{2});
 
 
@@ -69,11 +77,9 @@ end
 %% Transformation of Point Coordinates
 P3 = transpose([1 0 0 1]);
 P2 = transpose([-1 0 -1 1]);
-
  
 Frame0 = rotm2tform(Frame0);
 Frame3 = Frames{3};
-
 
 % P3
 P3F0 = Frames{3} * P3
@@ -88,55 +94,45 @@ text(P2F0(1), P2F0(2), P2F0(3), '   P2');
 %% Functions
 function Frames = drawFrame(O, R)
 
-% Translationen
-O0O1 = transpose([-0.78 0.15 0.21]);
-O0O2 = transpose([-0.78 -0.05 0.21]);
-O0O3 = transpose([-0.55 -0.2 .21]);
-TranslationVectors = [O0O1 O0O2 O0O3];
-
-% Translation in Homogene Matrix
-T = cell(1,length(TranslationVectors));
-for i=1: length(TranslationVectors)
-    T{i} = trvec2tform(transpose(TranslationVectors(:,i)));
-end
-% Erstellen der Frames
-Frames = cell(1,length(T));
-for i=1:length(T)
-Frames{i} =  T{i} * R{i};
-end
-
-
-% Frames
-for i = 1:length(Frames)
-    Frame = Frames{i};
-    % Beim Plotten darauf achten, dass die Frames die Verschiebung des
-    % Vektors zurückgeben, nicht die absolute Position. Daher muss der Origin des neuen Frames noch draufgerechnet werden !
-    % X-Achse
-    plot3( [Frame(1,4) Frame(1,4)+Frame(1,1)], [Frame(2,4) Frame(2,4)+Frame(2,1)], [Frame(3,4) Frame(3,4)+Frame(3,1)], 'r')
-    % Y-Achse
-    plot3( [Frame(1,4) Frame(1,4)+Frame(1,2)], [Frame(2,4) Frame(2,4)+Frame(2,2)], [Frame(3,4), Frame(3,4)+Frame(3,2)], 'g')
-    % Z-Achse 
-    plot3( [Frame(1,4) Frame(1,4)+Frame(1,3)], [Frame(2,4) Frame(2,4)+Frame(2,3)], [Frame(3,4) Frame(3,4)+Frame(3,3)], 'b')
-    text(Frame(1,4), Frame(2,4), Frame(3,4), sprintf(' F_%d', i), 'FontWeight', 'bold');
-
-    % xVektor = (Frame(1:3,1))
-    % yVektor = (Frame(1:3,2))
-    % zVektor = (Frame(1:3,3))
-    % 
-    % lenghts = [norm(xVektor) norm(yVektor) norm(zVektor)]
-    % orth = [dot(xVektor,yVektor) dot(xVektor,zVektor) dot(zVektor,yVektor)]
-
+    % Translation in Homogene Matrix
+    T = cell(1,size(O, 2));
+    for i=1: size(O, 2)
+        T{i} = trvec2tform(transpose(O(:,i)));
+    end
+    % Erstellen der Frames
+    Frames = cell(1,length(T));
+    for i=1:length(T)
+    Frames{i} =  T{i} * R{i};
+    end
     
-end
-
-
- 
-
-
-% Wichtig für die korrekte Anzeige der Proportionen
-axis equal; 
-grid on;
-view(3);
+    % Frames
+    for i = 1:length(Frames)
+        Frame = Frames{i};
+        % Beim Plotten darauf achten, dass die Frames die Verschiebung des
+        % Vektors zurückgeben, nicht die absolute Position. Daher muss der Origin des neuen Frames noch draufgerechnet werden !
+        % X-Achse
+        plot3( [Frame(1,4) Frame(1,4)+Frame(1,1)], [Frame(2,4) Frame(2,4)+Frame(2,1)], [Frame(3,4) Frame(3,4)+Frame(3,1)], 'r')
+        % Y-Achse
+        plot3( [Frame(1,4) Frame(1,4)+Frame(1,2)], [Frame(2,4) Frame(2,4)+Frame(2,2)], [Frame(3,4), Frame(3,4)+Frame(3,2)], 'g')
+        % Z-Achse 
+        plot3( [Frame(1,4) Frame(1,4)+Frame(1,3)], [Frame(2,4) Frame(2,4)+Frame(2,3)], [Frame(3,4) Frame(3,4)+Frame(3,3)], 'b')
+        text(Frame(1,4), Frame(2,4), Frame(3,4), sprintf(' F_%d', i), 'FontWeight', 'bold');
+    
+        % xVektor = (Frame(1:3,1))
+        % yVektor = (Frame(1:3,2))
+        % zVektor = (Frame(1:3,3))
+        % 
+        % lenghts = [norm(xVektor) norm(yVektor) norm(zVektor)]
+        % orth = [dot(xVektor,yVektor) dot(xVektor,zVektor) dot(zVektor,yVektor)]
+    
+        
+    end
+    
+    
+    % Wichtig für die korrekte Anzeige der Proportionen
+    axis equal; 
+    grid on;
+    view(3);
 end
 
 
