@@ -91,8 +91,12 @@ jointInit = homeConfiguration(robot); % -> Homeposition
 taskInit = getTransform(robot,jointInit,endEffector);  % AM ENDE WAHRSCHEINLICH NOCH IN SCHLEIFE PACKEN; DAMIT ROBOTER VON PUNKT A ZU B ZU C FÄHRT UND NICHT IMMER IN DIE HOME POSITION ZURÜCK MUSS
 
 taskFinal = T08_q1;
+
+
 % Wrap joint movement the qs are into values between -pi and pi (-180° 180°) -> prevent rotations more than 180°
-wrappedJointFinal = wrapToPi(jointFinal);
+
+
+distance = norm(tform2trvec(taskInit)-tform2trvec(taskFinal));
 
 % Initial & final time
 initTime = 0;
@@ -101,18 +105,28 @@ trajTimes = initTime:timeStep:finalTime;
 timeInterval = [trajTimes(1); trajTimes(end)];
 
 
-distance = cell(3,1);
+% Using PD-Controler for moving along the trajectorie
+jsMotionModel = jointSpaceMotionModel('RigidBodyTree',robot,'MotionType','PDControl');
+
+% Initial States (joint values and velocitites)
+qi = currentRobotJConfig.JointPosition; % Initial Position
+qdi = zeros(size(qi)); % Initial velocitiy
+qddi = zeros(size(qi)); % Initial acceleration
+% End Values 
+qf = wrapToPi(deg2rad(q{1}));% End Position
+qdf = 0; % End velocitiy
+qddf = 0; % End acceleration
 
 
-currentRobotJConfig = homeConfiguration(robot); % home config entspricht Ausganglsage aus dem Bild
-% show(robot,config, 'Frames','on'); % check homeconfig
 
 
-
+[rq, rqd, rqdd] = Polynom5DegreeTrajectory(qi, qdi, qddi, qf, qdf, qddf, finalTime, trajTimes);
 
 
 %% Manipulability
 
+
+%% Animation der Trajektorie plotten
 
 
 

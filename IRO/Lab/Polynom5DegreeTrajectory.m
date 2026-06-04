@@ -26,7 +26,7 @@ function [rq, rqd, rqdd] = Polynom5DegreeTrajectory(qi, qdi, qddi, qf, qdf, qddf
     a5 = (1 / (2 * (tf^5)))  * (-12 * (qi - qf) -  6 * (qdi + qdf) * tf - (qddi - qddf) * tf * tf);
 
     % Soll-Werte für den spezifischen Zeitpunkt t berechnen
-    rq   = a0 + a1*t + a2*t^2 +   a3*t^3 +   a4*t^4 +   a5*t^5;
-    rqd  =      a1 + 2*a2*t + 3*a3*t^2 + 4*a4*t^3 + 5*a5*t^4;
-    rqdd =           2*a2 + 6*a3*t + 12*a4*t^2 + 20*a5*t^3;
+    rq   = a0 + a1.*t + a2.*t.^2 +   a3.*t.^3 +   a4.*t.^4 +   a5.*t.^5;
+    rqd  =      a1 + 2*a2.*t + 3*a3.*t.^2 + 4*a4.*t.^3 + 5*a5.*t.^4;
+    rqdd =           2*a2 + 6*a3.*t + 12*a4.*t.^2 + 20*a5.*t.^3;
 end

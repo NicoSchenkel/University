@@ -91,8 +91,13 @@ jointInit = homeConfiguration(robot); % -> Homeposition
 taskInit = getTransform(robot,jointInit,endEffector);  % AM ENDE WAHRSCHEINLICH NOCH IN SCHLEIFE PACKEN; DAMIT ROBOTER VON PUNKT A ZU B ZU C FÄHRT UND NICHT IMMER IN DIE HOME POSITION ZURÜCK MUSS
 
 taskFinal = T08_q1;
+
+
 % Wrap joint movement the qs are into values between -pi and pi (-180° 180°) -> prevent rotations more than 180°
 wrappedJointFinal = wrapToPi(jointFinal);
+
+
+distance = norm(tform2trvec(taskInit)-tform2trvec(taskFinal));
 
 % Initial & final time
 initTime = 0;
@@ -101,12 +106,17 @@ trajTimes = initTime:timeStep:finalTime;
 timeInterval = [trajTimes(1); trajTimes(end)];
 
 
-distance = cell(3,1);
+% Using PD-Controler for moving along the trajectorie
+jsMotionModel = jointSpaceMotionModel('RigidBodyTree',robot,'MotionType','PDControl');
 
-
-currentRobotJConfig = homeConfiguration(robot); % home config entspricht Ausganglsage aus dem Bild
-% show(robot,config, 'Frames','on'); % check homeconfig
-
+% Initial States (joint values and velocitites)
+qi = currentRobotJConfig; % Initial Position
+qdi = zeros(size(qi)); % Initial velocitiy
+qddi = zeros(size(qi)); % Initial acceleration
+% End Values 
+qf = T08_q1
+qdf = 0;
+qddf = 0; % Initial acceleration
 
 
 
