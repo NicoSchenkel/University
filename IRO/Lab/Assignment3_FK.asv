@@ -94,7 +94,6 @@ taskFinal = T08_q1;
 
 
 % Wrap joint movement the qs are into values between -pi and pi (-180° 180°) -> prevent rotations more than 180°
-wrappedJointFinal = wrapToPi(jointFinal);
 
 
 distance = norm(tform2trvec(taskInit)-tform2trvec(taskFinal));
@@ -110,18 +109,47 @@ timeInterval = [trajTimes(1); trajTimes(end)];
 jsMotionModel = jointSpaceMotionModel('RigidBodyTree',robot,'MotionType','PDControl');
 
 % Initial States (joint values and velocitites)
-qi = currentRobotJConfig; % Initial Position
+qi = currentRobotJConfig.JointPosition; % Initial Position
 qdi = zeros(size(qi)); % Initial velocitiy
 qddi = zeros(size(qi)); % Initial acceleration
 % End Values 
-qf = T08_q1
-qdf = 0;
-qddf = 0; % Initial acceleration
+qf = wrapToPi(deg2rad(q{1}));% End Position
+qdf = 0; % End velocitiy
+qddf = 0; % End acceleration
 
 
+% Berechnung der Trajektorie mit trapezoidalem v und a
+[rq, rqd, rqdd] = Polynom5DegreeTrajectory(qi, qdi, qddi, qf, qdf, qddf, finalTime, trajTimes);
+
+
+
+%% Animation der Trajektorie plotten
+
+% Return to initial configuration
+show(robot,currentRobotJConfig,'PreservePlot',false,'Frames','off');
+
+for i=1:length(trajTimes)
+    % Current time 
+    tNow= trajTimes(i);
+    % JOint config for time tNow
+    configNow = rq(:, i)
+    poseNow = getTransform(robot,configNow,endEffector);
+    show(robot,configNow,'PreservePlot',false,'Frames','off');
+    jointSpaceMarker = plot3(poseNow(1,4),poseNow(2,4),poseNow(3,4),'r.','MarkerSize',20);
+    drawnow;
+end
+
+% Add a legend and title
+legend([taskSpaceMarker jointSpaceMarker], {'Defined in Task-Space', 'Defined in Joint-Space'});
+title('Manipulator Trajectories')
 
 
 %% Manipulability
+
+
+
+
+
 
 
 

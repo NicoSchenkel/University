@@ -21,9 +21,9 @@ q{2} = transpose([351.73 300.69 8.11 263.98 356.98 63 79.94]);
 q{3} = transpose([1.18 291.32 18.47 290.91 94.36 112.93 46]);
 
 % Berechnen der Forward Kinematics
-[T08_q1, ToolPosition_q1, Tq1] = ForwardKinematics(TWB, q{1});
-[T08_q2, ToolPosition_q2, Tq2] = ForwardKinematics(TWB, q{2});
-[T08_q3, ToolPosition_q3, Tq3] = ForwardKinematics(TWB, q{3});
+[T08_q1, ToolPosition_q1, Transformations_q1] = ForwardKinematics(TWB, q{1});
+[T08_q2, ToolPosition_q2, Transformations_q2] = ForwardKinematics(TWB, q{2});
+[T08_q3, ToolPosition_q3, Transformations_q3] = ForwardKinematics(TWB, q{3});
 
 disp("T08 für q1: ");  disp(T08_q1)
 disp("Toolposition für q1: ");  disp(ToolPosition_q1)
@@ -60,9 +60,9 @@ for i = 1:length(q)
     % Simulaiton anzeigen
     show(robot,currentRobotJConfig, 'Frames','on');
 
-Tq = {Tq1, Tq2, Tq3};   
+Transformations_ = {Transformations_q1, Transformations_q2, Transformations_q3};   
 hold on;                   
-drawFrame(Tq{i});
+drawFrame(Transformations_{i});
 end
 
 
@@ -118,15 +118,43 @@ qdf = 0; % End velocitiy
 qddf = 0; % End acceleration
 
 
-
-
+% Berechnung der Trajektorie mit trapezoidalem v und a
 [rq, rqd, rqdd] = Polynom5DegreeTrajectory(qi, qdi, qddi, qf, qdf, qddf, finalTime, trajTimes);
+
+
+
+%% Animation der Trajektorie plotten
+figure2 = figure('Name', ' Trajektorienbewegung')
+% Return to initial configuration
+show(robot,currentRobotJConfig,'PreservePlot',true,'Frames','on');
+hold on;
+for i=1:length(trajTimes)
+    % Current time 
+    tNow= trajTimes(i);
+    % Joint values for tNow
+    qCurrent = rq(:,i)
+    for n = 1:length(qCurrent)
+        currentRobotJConfig(n).JointPosition = qCurrent(n);
+    end
+    % Determining Pose 
+    poseNow = getTransform(robot,currentRobotJConfig,endEffector);
+    show(robot,currentRobotJConfig,'PreservePlot',false,'Frames','off');
+    jointSpaceMarker = plot3(poseNow(1,4),poseNow(2,4),poseNow(3,4),'r.','MarkerSize',20);
+    drawnow;
+end
+
+% Add a legend and title
+legend([taskSpaceMarker jointSpaceMarker], { 'Defined in Joint-Space'});
+title('Manipulator Trajectories')
 
 
 %% Manipulability
 
 
-%% Animation der Trajektorie plotten
+
+
+
+
 
 
 
