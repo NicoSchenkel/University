@@ -36,41 +36,13 @@ disp("Toolposition für q3: ");  disp(ToolPosition_q3)
 
 
 
-%% Kinova simulation
+%% Kinova simulation (Daten)
 
 % Roboter laden
 robot = loadrobot('kinovaGen3');
-% Set Robot JOint configuration to home configuration
+% Set Robot Joint configuration to home configuration
 currentRobotJConfig = homeConfiguration(robot);
 endEffector = "EndEffector_Link";   % nochmal anschauen!
-
-% Tool speed for simulation
-timeStep = 0.1; % seconds
-toolSpeed = 0.1; % m/s
-
-% Set initial Pose
-jointInit = currentRobotJConfig; % -> Homeposition
-taskInit = getTransform(robot,jointInit,endEffector);  % AM ENDE WAHRSCHEINLICH NOCH IN SCHLEIFE PACKEN; DAMIT ROBOTER VON PUNKT A ZU B ZU C FÄHRT UND NICHT IMMER IN DIE HOME POSITION ZURÜCK MUSS
-
-% Setting the final end-effector pose
-taskFinal = cell(3,1);
-    taskFinal{1} = T08_q1;
-    taskFinal{2} = T08_q2;
-    taskFinal{3} = T08_q3;
-
-% Initial & final 
-initTime = 0;
-finalTime = (distance/toolSpeed) - initTime;
-trajTimes = initTime:timeStep:finalTime;
-timeInterval = [trajTimes(1); trajTimes(end)];
-
-
-distance = cell(3,1);
-
-
-currentRobotJConfig = homeConfiguration(robot); % home config entspricht Ausganglsage aus dem Bild
-% show(robot,config, 'Frames','on'); % check homeconfig
-
 
 %% Save Frames for different q's
 qFrames_simulation = cell(3,1);
@@ -86,7 +58,7 @@ for i = 1:length(q)
     end
      qFrames_simulation{i} = getTransform(robot, currentRobotJConfig, endEffector);
     % Simulaiton anzeigen
-    show(robot,currentRobotJConfig, 'Frames','off');
+    show(robot,currentRobotJConfig, 'Frames','on');
 
 Tq = {Tq1, Tq2, Tq3};   
 hold on;                   
@@ -105,6 +77,38 @@ format short
 fehler1 = T08_q1 - qFrames_simulation{1}
 fehler2 = T08_q2 - qFrames_simulation{2}
 fehler3 = T08_q3 - qFrames_simulation{3}
+
+
+
+%% Simulation der Trajektorien
+
+% Tool speed for simulation
+timeStep = 0.1; % seconds
+toolSpeed = 0.1; % m/s
+
+% Set initial & final end-effector Pose
+jointInit = homeConfiguration(robot); % -> Homeposition
+taskInit = getTransform(robot,jointInit,endEffector);  % AM ENDE WAHRSCHEINLICH NOCH IN SCHLEIFE PACKEN; DAMIT ROBOTER VON PUNKT A ZU B ZU C FÄHRT UND NICHT IMMER IN DIE HOME POSITION ZURÜCK MUSS
+
+taskFinal = T08_q1;
+% Wrap joint movement the qs are into values between -pi and pi (-180° 180°) -> prevent rotations more than 180°
+wrappedJointFinal = wrapToPi(jointFinal);
+
+% Initial & final time
+initTime = 0;
+finalTime = (distance/toolSpeed) - initTime;
+trajTimes = initTime:timeStep:finalTime;
+timeInterval = [trajTimes(1); trajTimes(end)];
+
+
+distance = cell(3,1);
+
+
+currentRobotJConfig = homeConfiguration(robot); % home config entspricht Ausganglsage aus dem Bild
+% show(robot,config, 'Frames','on'); % check homeconfig
+
+
+
 
 
 %% Manipulability
