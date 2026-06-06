@@ -38,11 +38,22 @@ disp("Toolposition für q3: ");  disp(ToolPosition_q3)
 
 %% Kinova simulation (Daten)
 
-% Roboter laden
+% Beide laden
 robot = loadrobot('kinovaGen3');
+%gripper = loadrobot('robotiq2F85');
+
+% Verbindung herstellen
+%addSubtree(robot, 'EndEffector_Link', gripper);
+
+% Ergebnis anzeigen
+figure;
+show(robot, homeConfiguration(robot), 'Frames', 'off');
+%showdetails(robot)  % neuen Tip-Link-Namen suchen
+%%
 % Set Robot Joint configuration to home configuration
 currentRobotJConfig = homeConfiguration(robot);
-endEffector = "EndEffector_Link";   % nochmal anschauen!
+endEffector = "EndEffector_Link";   
+
 
 %% Save Frames for different q's
 qFrames_simulation = cell(3,1);
@@ -79,73 +90,34 @@ fehler2 = T08_q2 - qFrames_simulation{2}
 fehler3 = T08_q3 - qFrames_simulation{3}
 
 
-
 %% Simulation der Trajektorien
+targets = {T08_q1, T08_q2, T08_q3};
 
-% Tool speed for simulation
-timeStep = 0.1; % seconds
-toolSpeed = 0.1; % m/s
+figure2 = figure('Name', 'Trajektorienbewegung');
+axAnim  = axes(figure2);
 
-% Set initial & final end-effector Pose
-jointInit = homeConfiguration(robot); % -> Homeposition
-taskInit = getTransform(robot,jointInit,endEffector);  % AM ENDE WAHRSCHEINLICH NOCH IN SCHLEIFE PACKEN; DAMIT ROBOTER VON PUNKT A ZU B ZU C FÄHRT UND NICHT IMMER IN DIE HOME POSITION ZURÜCK MUSS
+% Startpunkt: Home
+configNew = homeConfiguration(robot);
 
-taskFinal = T08_q1;
+for i = 1:length(targets)
+    jointInit = configNew;
+    taskInit  = getTransform(robot, jointInit, endEffector);
+    taskFinal = targets{i};
 
+    [finalTime, trajTimes] = calculateTrajectoryParams(taskInit, taskFinal);
 
-% Wrap joint movement the qs are into values between -pi and pi (-180° 180°) -> prevent rotations more than 180°
+    qi   = wrapToPi([jointInit.JointPosition]');
+    qdi  = zeros(size(qi));
+    qddi = zeros(size(qi));
 
+    qf   = wrapToPi(deg2rad(q{i}));
+    qdf  = zeros(size(qf));
+    qddf = zeros(size(qf));
 
-distance = norm(tform2trvec(taskInit)-tform2trvec(taskFinal));
+    [rq, rqd, ~] = Polynom5DegreeTrajectory(qi, qdi, qddi, qf, qdf, qddf, finalTime, trajTimes);
 
-% Initial & final time
-initTime = 0;
-finalTime = (distance/toolSpeed) - initTime;
-trajTimes = initTime:timeStep:finalTime;
-timeInterval = [trajTimes(1); trajTimes(end)];
-
-
-% Using PD-Controler for moving along the trajectorie
-jsMotionModel = jointSpaceMotionModel('RigidBodyTree',robot,'MotionType','PDControl');
-
-% Initial States (joint values and velocitites)
-qi = currentRobotJConfig.JointPosition; % Initial Position
-qdi = zeros(size(qi)); % Initial velocitiy
-qddi = zeros(size(qi)); % Initial acceleration
-% End Values 
-qf = wrapToPi(deg2rad(q{1}));% End Position
-qdf = 0; % End velocitiy
-qddf = 0; % End acceleration
-
-
-% Berechnung der Trajektorie mit trapezoidalem v und a
-[rq, rqd, rqdd] = Polynom5DegreeTrajectory(qi, qdi, qddi, qf, qdf, qddf, finalTime, trajTimes);
-
-
-
-%% Animation der Trajektorie plotten
-figure2 = figure('Name', ' Trajektorienbewegung')
-% Return to initial configuration
-show(robot,currentRobotJConfig,'PreservePlot',true,'Frames','on');
-hold on;
-for i=1:length(trajTimes)
-    % Current time 
-    tNow= trajTimes(i);
-    % Joint values for tNow
-    qCurrent = rq(:,i)
-    for n = 1:length(qCurrent)
-        currentRobotJConfig(n).JointPosition = qCurrent(n);
-    end
-    % Determining Pose 
-    poseNow = getTransform(robot,currentRobotJConfig,endEffector);
-    show(robot,currentRobotJConfig,'PreservePlot',false,'Frames','off');
-    jointSpaceMarker = plot3(poseNow(1,4),poseNow(2,4),poseNow(3,4),'r.','MarkerSize',20);
-    drawnow;
+    configNew = drawTrajectory(trajTimes, rq, robot, configNew, endEffector, axAnim, TWB);
 end
-
-% Add a legend and title
-legend([taskSpaceMarker jointSpaceMarker], { 'Defined in Joint-Space'});
-title('Manipulator Trajectories')
 
 
 %% Manipulability
@@ -154,121 +126,117 @@ title('Manipulator Trajectories')
 
 
 
-
-
-
-
-%% Funciton for Forward Kinematic to calculate Toolposition
-function [T08, ToolPosition, T] = ForwardKinematics(TWB, q)
-% Entgegennehmen des q- Vektors
-Rotationen_q = cell(1, length(q)+1);
-% Rotationsmatritzen der einzelnen q's
-Rotationen_q {1} = Z_Rotation(-q(1));
-Rotationen_q {2} = Y_Rotation(-q(2));
-Rotationen_q {3} = Y_Rotation(q(3));
-Rotationen_q {4} = Y_Rotation(-q(4));
-Rotationen_q {5} = Y_Rotation(q(5));
-Rotationen_q {6} = Y_Rotation(-q(6));
-Rotationen_q {7} = Y_Rotation(q(7));
-Rotationen_q {8} =Z_Rotation(0);
-    
-% for i=1:length(Rotationen_q)
-%     Rotationen_q{i} = rotm2tform(Rotationen_q{i});
+% %% Funciton for Forward Kinematic to calculate Toolposition
+% function [T08, ToolPosition, T] = ForwardKinematics(TWB, q)
+% % Entgegennehmen des q- Vektors
+% Rotationen_q = cell(1, length(q)+1);
+% % Rotationsmatritzen der einzelnen q's
+% Rotationen_q {1} = Z_Rotation(-q(1));
+% Rotationen_q {2} = Y_Rotation(-q(2));
+% Rotationen_q {3} = Y_Rotation(q(3));
+% Rotationen_q {4} = Y_Rotation(-q(4));
+% Rotationen_q {5} = Y_Rotation(q(5));
+% Rotationen_q {6} = Y_Rotation(-q(6));
+% Rotationen_q {7} = Y_Rotation(q(7));
+% Rotationen_q {8} =Z_Rotation(0);
+% 
+% % for i=1:length(Rotationen_q)
+% %     Rotationen_q{i} = rotm2tform(Rotationen_q{i});
+% % end
+% 
+% 
+% % Rotationsmatrixen des Roboters (der Frames)
+% Rotationen_Axis = transpose([
+% 180 0 0;    
+% 90 0 0;
+% -90 0 0;
+% 90 0 0;
+% -90 0 0;
+% 90 0 0;
+% -90 0 0;
+% 180 0 0;
+%     ]);
+% 
+% 
+% % Rotationsmatritzen
+% % Bereits mit q verrechnet. Translationen werden im zweiten Schritt hinzugefügt. Siehe VL_4 p.5
+% nFrames = length(Rotationen_Axis);
+% Rotations_ges = cell(1,nFrames);
+%     for i = 1:nFrames
+%         Rotations_ges{i}=  rotm2tform(Rotationen_q{i})  *rotm2tform(Z_Rotation(Rotationen_Axis(3,i)) * Y_Rotation(Rotationen_Axis(2,i)) * X_Rotation(Rotationen_Axis(1,i)));
+%     end
+% 
+% % Translationen der Gelenke in mm
+% Translationen = ([ ...
+%     0, 0, 156.4;
+%     0, 5.4, -128.4;
+%     0, -210.4, -6.4;
+%     0, 6.4, -210.4;
+%     0, -208.4, -6.4;
+%     0, 0, -105.9;
+%     0, - 105.9, 0;
+%     0, 0, -61.5;
+% ]) * 10^-3;
+% 
+% 
+% % Homogenisierte Translationen
+% Translations_H = cell(1,nFrames);
+%     for i = 1:nFrames
+%         Translations_H{i} =   trvec2tform(Translationen(i,:));
+%     end
+% 
+% % Transformationen berechnen
+% Transformationen = cell(1,nFrames);
+%     for i=1:nFrames
+%         Transformationen{i} = Translations_H{i}  * Rotations_ges{i};
+%     end
+% 
+% 
+% % Transformationen von Frame zu Frame berechnen in abhängigkeit von vorhigen Frames
+% T = cell(1, length(Transformationen));
+% for i=1: length(Transformationen)
+%     if i == 1
+%     T{i} = TWB * Transformationen{i};
+%     else
+%         T{i} = T{i-1} * Transformationen{i};
+%     end
 % end
-  
-
-% Rotationsmatrixen des Roboters (der Frames)
-Rotationen_Axis = transpose([
-180 0 0;    
-90 0 0;
--90 0 0;
-90 0 0;
--90 0 0;
-90 0 0;
--90 0 0;
-180 0 0;
-    ]);
-
-
-% Rotationsmatritzen
-% Bereits mit q verrechnet. Translationen werden im zweiten Schritt hinzugefügt. Siehe VL_4 p.5
-nFrames = length(Rotationen_Axis);
-Rotations_ges = cell(1,nFrames);
-    for i = 1:nFrames
-        Rotations_ges{i}=  rotm2tform(Rotationen_q{i})  *rotm2tform(Z_Rotation(Rotationen_Axis(3,i)) * Y_Rotation(Rotationen_Axis(2,i)) * X_Rotation(Rotationen_Axis(1,i)));
-    end
-
-% Translationen der Gelenke in mm
-Translationen = ([ ...
-    0, 0, 156.4;
-    0, 5.4, -128.4;
-    0, -210.4, -6.4;
-    0, 6.4, -210.4;
-    0, -208.4, -6.4;
-    0, 0, -105.9;
-    0, - 105.9, 0;
-    0, 0, -61.5;
-]) * 10^-3;
-
-
-% Homogenisierte Translationen
-Translations_H = cell(1,nFrames);
-    for i = 1:nFrames
-        Translations_H{i} =   trvec2tform(Translationen(i,:));
-    end
-
-% Transformationen berechnen
-Transformationen = cell(1,nFrames);
-    for i=1:nFrames
-        Transformationen{i} = Translations_H{i}  * Rotations_ges{i};
-    end
-
-
-% Transformationen von Frame zu Frame berechnen in abhängigkeit von vorhigen Frames
-T = cell(1, length(Transformationen));
-for i=1: length(Transformationen)
-    if i == 1
-    T{i} = TWB * Transformationen{i};
-    else
-        T{i} = T{i-1} * Transformationen{i};
-    end
-end
-
-T08 = T{8};
-
-% Tool
-v = transpose([0 0 0.12 1]);
-ToolPosition = T{8} * v;
-
-end
-
-
-
-
-
-%% Funktionen für Rotationsmatrizen
-% Rotationssmatrix X
-function [Rx] = X_Rotation(alpha)
-    
-    Rx = [1,               0,                 0;
-          0,     cosd(alpha),     -sind(alpha) ;
-          0,     sind(alpha),      cosd(alpha)];
-end
-
-% Rotationssmatrix Y
-function [Ry] = Y_Rotation(beta)
-    
-    Ry = [cosd(beta),  0,  sind(beta);
-                   0,  1,            0;
-         -sind(beta),  0,  cosd(beta)];
-end
-
-% Rotationssmatrix Z
-function [Rz] = Z_Rotation(gamma)
-    Rz = [cosd(gamma), -sind(gamma),  0;
-          sind(gamma),  cosd(gamma),  0;
-              0,            0,        1];
-end
-
-
-
+% 
+% T08 = T{8};
+% 
+% % Tool
+% v = transpose([0 0 0.12 1]);
+% ToolPosition = T{8} * v;
+% 
+% end
+% 
+% 
+% 
+% 
+% 
+% %% Funktionen für Rotationsmatrizen
+% % Rotationssmatrix X
+% function [Rx] = X_Rotation(alpha)
+% 
+%     Rx = [1,               0,                 0;
+%           0,     cosd(alpha),     -sind(alpha) ;
+%           0,     sind(alpha),      cosd(alpha)];
+% end
+% 
+% % Rotationssmatrix Y
+% function [Ry] = Y_Rotation(beta)
+% 
+%     Ry = [cosd(beta),  0,  sind(beta);
+%                    0,  1,            0;
+%          -sind(beta),  0,  cosd(beta)];
+% end
+% 
+% % Rotationssmatrix Z
+% function [Rz] = Z_Rotation(gamma)
+%     Rz = [cosd(gamma), -sind(gamma),  0;
+%           sind(gamma),  cosd(gamma),  0;
+%               0,            0,        1];
+% end
+% 
+% 
+% 

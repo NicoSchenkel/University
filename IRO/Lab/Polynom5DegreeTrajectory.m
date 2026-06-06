@@ -16,7 +16,7 @@ function [rq, rqd, rqdd] = Polynom5DegreeTrajectory(qi, qdi, qddi, qf, qdf, qddf
     %   rqd        = Parametrisierte Soll-Geschwindigkeit bei Zeit t
     %   rqdd       = Parametrisierte Soll-Beschleunigung bei Zeit t
 
-    % Koeffizienten des Polynoms berechnen (wie im Bild)
+    % Koeffizienten des Polynoms berechnen
     a0 = qi;
     a1 = qdi;
     a2 = 0.5 * qddi;
