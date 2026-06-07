@@ -1,4 +1,4 @@
-function [currentRobotJConfig,J] = drawTrajectory(trajTimes, rq, robot, currentRobotJConfig, endEffector, axAnim, TWB)
+function [currentRobotJConfig,V,D] = drawTrajectory(trajTimes, rq, robot, currentRobotJConfig, endEffector, axAnim, TWB)
 % 'Parent', axAnim zwingt MATLAB, genau in das neue Fenster (figure2) zu zeichnen
 show(robot, currentRobotJConfig, 'Parent', axAnim, 'PreservePlot', true, 'Frames', 'on');
 hold(axAnim, 'on');
@@ -12,22 +12,25 @@ for i=1:length(trajTimes)
     
     % Determining Pose 
         %poseNow = getTransform(robot, currentRobotJConfig, endEffector);  % ← toolOffset
-     [~, ~, T] = ForwardKinematics(TWB, rad2deg(qCurrent));
-     poseNow = T{end};
+                [~, ~, T] = ForwardKinematics(TWB, rad2deg(qCurrent));
+             poseNow = T{8};
     % Auch hier weisen wir explizit axAnim zu, damit es im neuen Fenster bleibt
     show(robot, currentRobotJConfig, 'Parent', axAnim, 'PreservePlot', false, 'Frames', 'off');
     
     % Der plot3-Befehl muss ebenfalls wissen, dass er in axAnim zeichnen soll
     jointSpaceMarker = plot3(axAnim, poseNow(1,4), poseNow(2,4), poseNow(3,4), 'r.', 'MarkerSize', 20);
     drawnow;
-    %% Berechnen der Jakobi Matrix
+    % Berechnen der Jakobi Matrix
     J = geometricJacobian(robot,currentRobotJConfig,endEffector);
     %jacobiMatrix(T, TWB)
 
-    %% Manipulability
-    [vm_min, vm_max] = manipulability(J);
+    % Berechnung der Manipulabilität
 
-
+    E = J * J';
+    % D - Diagonlae Matrix der Eigenwerte (mainpulabilität)
+    % |V - Spalten entsprechen den jeweiligen Eigenvektoren (Richtung der Manipulabilität)
+    [V,D] = eig(E);
+    % DIrection of main 
 
 end
 
